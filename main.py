@@ -2,17 +2,13 @@ from keras.datasets import mnist
 import numpy as np
 
 # Loading the data
-(x_train, y_train), (x_test, y_test) = mnist.load_data()
-# x_train shape (60000, 28, 28) 
-# y_train shape (60000,) : flat array of labels
-# x_test shape (10000, 28, 28) 
-# y_test shape (10000,) : flat array of labels
+(x, y), (x_test, y_test) = mnist.load_data()
 
-## Data preprocessing
+# Data preprocessing
 
-x_train_flat = x_train.reshape((x_train.shape[0], -1))  / 255.0
-y_train = y_train.reshape(-1, 1) 
-data = np.hstack((y_train, x_train_flat)) 
+x_flat = x.reshape((x.shape[0], -1))  / 255.0
+y = y.reshape(-1, 1) 
+data = np.hstack((y, x_flat)) 
 np.random.shuffle(data)
 
 x_test_flat = x_test.reshape(x_test.shape[0], -1) / 255.0
