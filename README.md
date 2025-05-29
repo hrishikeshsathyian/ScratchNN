@@ -16,7 +16,7 @@ y shape: (60000,)
 x_test shape: (10000, 28, 28)
 y_test shape: (10000,) 
 
-## Data Preprocessing 
+## 📜 Data Preprocessing 
 For data preprocessing, I wanted to shuffle the data and then split it up into training and validation. 
 I reshaped the input matrix, x into a 2D array where each row would represent a training example. Then I reshaped the label array from a flat array of labels into a 2D column vector. I then appended the label values to each row (training examples) with h stack. Then, I shuffled the data to ensure randomness. 
 ```python 
@@ -43,3 +43,50 @@ Y_train = data_train[0]
 X_train = data_train[1: n] # (784, 59000) because we set aside 1000 for validation
 
 ```
+
+## Overview of Forward Propagation 
+The network consists of:
+
+Input layer X: Each input image is flattened into a 784-dimensional column vector (28×28 pixels).
+Hidden layer A1: 10 neurons with ReLU activation.
+Output layer A2: 10 neurons with softmax activation, each corresponding to a digit (0–9).
+
+I chose ReLU as an activation function for the first hidden layer instead of other common activations such as tanh and sigmoid, so as to avoid the issue of vanishing gradients as well as to be able to reap the benefits of sparse activation. That is, ReLU "turns off" the neurons that have negative inputs and hence prevents overfitting.
+
+For the output layer, I chose softmax as an activation function because turning raw inputs into probabilities was well suited for multi-class classification.
+
+Overall, a quick overview of the math of forward propagation would be as follows:
+
+Z<sup>1</sup>  = W<sup>1</sup>X + b1
+A<sup>1</sup> = ReLU(Z<sup>1</sup>)
+Z<sup>2</sup>  = W<sup>2</sup>A<sup>1</sup> + b2
+A<sup>2</sup> = softmax(Z<sup>2</sup>)
+
+
+## Implementation (Forward Propagation)
+```python 
+def init_params(): 
+    W1 = np.random.rand(10, 784) - 0.5
+    b1 = np.random.rand(10, 1) 
+    W2 = np.random.rand(10, 10) - 0.5
+    b2 = np.random.rand(10, 1) 
+    return W1, b1, W2, b2
+
+def ReLU(Z):
+    return np.maximum(0, Z)
+
+def softmax(Z):
+    Z_stable = Z - np.max(Z, axis=0, keepdims=True)
+    exp_Z = np.exp(Z_stable)
+    return exp_Z / np.sum(exp_Z, axis=0, keepdims=True)
+
+def forward_propagation(X, W1, b1, W2, b2): 
+    Z1 = W1 @ X + b1 
+    A1 = ReLU(Z1)
+    Z2 = W2 @ A1 + b2
+    A2 = softmax(Z2)
+    return Z1, A1, Z2, A2
+```
+
+
+## Implementation (Back Propagation)
