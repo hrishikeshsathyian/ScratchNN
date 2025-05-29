@@ -16,15 +16,12 @@ y_test = y_test.reshape(-1, 1)
 test_data = np.hstack((y_test, x_test_flat))
 np.random.shuffle(test_data)
 
-# Get the number of rows and columns
 m, n = data.shape
-# after transposing, each training example is a column
-# after transposing, each training example is a column
 data_validation = data[0: 1000].T
-Y_validation = data_validation[0] # flat array of labels
+Y_validation = data_validation[0]
 X_validation = data_validation[1: n]
 
-data_train = data[1000: m].T # make each column a training example
+data_train = data[1000: m].T
 Y_train = data_train[0]
 X_train = data_train[1: n] # (784, 59000) because we set aside 1000 for validation
 
@@ -39,7 +36,7 @@ def ReLU(Z):
     return np.maximum(0, Z)
 
 def softmax(Z):
-    Z_stable = Z - np.max(Z, axis=0, keepdims=True)
+    Z_stable = Z - np.max(Z, axis=0, keepdims=True) # stabilize by reducing values, too high would return NaN
     exp_Z = np.exp(Z_stable)
     return exp_Z / np.sum(exp_Z, axis=0, keepdims=True)
 
@@ -51,26 +48,14 @@ def forward_propagation(X, W1, b1, W2, b2):
     return Z1, A1, Z2, A2
 
 def one_hot(Y):
-    Y = Y.astype(int).flatten()  # Ensures shape (m,) and integer type
-    # Create a 2D array of zeros with:
-    # - number of rows equal to the number of elements in Y (i.e., one row per label)
-    # - number of columns equal to the maximum value in Y plus 1
-    #   (assuming classes are labeled from 0 to Y.max())
+    Y = Y.astype(int) 
     one_hot_Y = np.zeros((Y.size, Y.max() + 1))
-    
-    # np.arange(Y.size) creates an array of indices [0, 1, 2, ..., Y.size-1]
-    # The expression one_hot_Y[np.arange(Y.size), Y] selects the position in each row
-    # corresponding to the label in Y, and sets that position to 1.
-    one_hot_Y[np.arange(Y.size), Y] = 1
-
-    one_hot_Y = one_hot_Y.T
+    one_hot_Y[np.arange(Y.size), Y] = 1 
+    one_hot_Y = one_hot_Y.T # transpose such that each column is an output vector for a training example
     return one_hot_Y
 
 
-def deriv_Relu(Z):
-    return Z > 0 # works due to boolean to int conversion
-
-def backwards_propagation(X, Y, Z1, A1, Z2, A2, W1, W2):
+def back_propagation(X, Y, Z1, A1, Z2, A2, W1, W2):
     m = Y.size 
     one_hot_Y = one_hot(Y)
     dZ2 = A2 - one_hot_Y 
@@ -93,7 +78,7 @@ def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, learning_rate=0.01):
 
 
 def get_predictions(A2):
-    return np.argmax(A2, 0)
+    return np.argmax(A2, 0) # returns 1D array of predictions
 
 def get_accuracy(predictions, Y):
     Y = Y.flatten()
@@ -103,7 +88,7 @@ def gradient_descent(X, Y, learning_rate, iterations):
     W1, b1, W2, b2 = init_params()
     for i in range(iterations):
         Z1, A1, Z2, A2 = forward_propagation(X, W1, b1, W2, b2)
-        dW1, db1, dW2, db2 = backwards_propagation(X, Y, Z1, A1, Z2, A2, W1, W2)
+        dW1, db1, dW2, db2 = back_propagation(X, Y, Z1, A1, Z2, A2, W1, W2)
         W1, b1, W2, b2 = update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, learning_rate)
         if (i % 10 == 0):
             print("Iteration: ", i)
@@ -112,9 +97,25 @@ def gradient_descent(X, Y, learning_rate, iterations):
     return W1, b1, W2, b2
 
 if __name__ == "__main__":
-    learning_rate = 0.5
-    iterations = 1000
-    W1, b1, W2, b2 = gradient_descent(X_train, Y_train, learning_rate, iterations)
-    print("Training complete.")
-    print(f"Final Values of W1: {W1}, b1: {b1}, W2: {W2}, b2: {b2}")
-    
+    learning_rates = [0.1, 0.5, 1.0]
+    params = []
+    max_lr = 0
+    max_accuracy = 0
+    # Train and validate the model with different learning rates and pick the best one
+    for learning_rate in learning_rates:
+        print(f"Training with learning rate: {learning_rate}")
+        W1, b1, W2, b2 = gradient_descent(X_train, Y_train, learning_rate, 500)
+        Z1, A1, Z2, A2 = forward_propagation(X_validation, W1, b1, W2, b2)
+        predictions = get_predictions(A2)
+        accuracy = get_accuracy(predictions, Y_validation)
+        if accuracy > max_accuracy:
+            max_accuracy = accuracy
+            max_lr = learning_rate
+            params = (W1, b1, W2, b2)
+        print(f"Validation accuracy with learning rate {learning_rate}: {accuracy:.4f}")
+    # Test the best parameters on the test set
+    W1, b1, W2, b2 = params
+    Z1, A1, Z2, A2 = forward_propagation(x_test_flat.T, W1, b1, W2, b2)
+    predictions = get_predictions(A2)
+    test_accuracy = get_accuracy(predictions, y_test)
+    print(f"Test accuracy: {test_accuracy:.4f} with learning rate {max_lr}")
